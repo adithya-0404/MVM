@@ -1,0 +1,66 @@
+services:
+  # ── ML Service ──────────────────────────────────────────────────────────────
+  - type: web
+    name: mvm-ml-service
+    runtime: docker
+    rootDir: ml-service
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: ALLOWED_ORIGINS
+        # Set to your backend URL after it deploys, e.g.:
+        # https://mvm-backend.onrender.com
+        sync: false
+
+  # ── Backend API + Frontend (single service) ──────────────────────────────────
+  # The Express server serves the built React app from client/dist as well as
+  # the /api/* routes. This way frontend + backend share the same domain and
+  # there are no CORS issues between them.
+  - type: web
+    name: mvm-backend
+    runtime: node
+    rootDir: .
+    buildCommand: cd client && npm ci && npm run build && cd ../server && npm ci --omit=dev
+    startCommand: node server/server.js
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ML_SERVICE_URL
+        # After mvm-ml-service deploys, set this to its URL, e.g.:
+        # https://mvm-ml-service.onrender.com
+        sync: false
+      - key: CLIENT_URL
+        # Same as SERVER_URL since frontend is served from the same app
+        # e.g.: https://mvm-backend.onrender.com
+        sync: false
+      - key: SERVER_URL
+        # The public URL Render assigns to this service
+        # e.g.: https://mvm-backend.onrender.com
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: PHONEPE_HOST
+        value: https://api-preprod.phonepe.com/apis/pg-sandbox
+      - key: PHONEPE_MERCHANT_ID
+        sync: false
+      - key: PHONEPE_SALT_KEY
+        sync: false
+      - key: PHONEPE_SALT_INDEX
+        value: "1"
